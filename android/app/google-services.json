@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "767674898221",
+    "project_id": "seguruni-35ca8",
+    "storage_bucket": "seguruni-35ca8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:767674898221:android:d3e106b728b84058e5e5a4",
+        "android_client_info": {
+          "package_name": "com.example.seguruni"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRP1AiQeBP_CtEurVgvUTwwEFW28Xdcfk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
