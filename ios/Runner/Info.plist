@@ -46,7 +46,11 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-<string>Necesitamos tu ubicación para reportes de emergencia</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Necesitamos tu ubicación para mostrarte los puntos de seguridad cercanos</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Necesitamos tu ubicación para servicios de emergencia</string>
+	<string>Necesitamos tu ubicación para reportes de emergencia</string>
 <key>NSMicrophoneUsageDescription</key>
 <string>Necesitamos acceso al micrófono para la alarma</string>
 </dict>
