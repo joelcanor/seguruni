@@ -44,7 +44,8 @@ flutter {
 }
 
 dependencies {
-    // Agrega esto al final
-    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
 }
-apply plugin: 'com.google.gms.google-services'
+
+// Aplicar el plugin al final del archivo
+apply(plugin = "com.google.gms.google-services")
