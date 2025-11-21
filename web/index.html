@@ -1,38 +1,105 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="CampusGuard - Seguridad universitaria con botón de emergencia">
+  <meta name="keywords" content="seguridad, universidad, emergencia, campus">
+  <meta name="author" content="CampusGuard Team">
+  
+  <!-- Mobile Web App -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="seguruni">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CampusGuard">
+  
+  <!-- Theme Color -->
+  <meta name="theme-color" content="#2563EB">
+  <meta name="msapplication-navbutton-color" content="#2563EB">
+  <meta name="apple-mobile-web-app-status-bar-style" content="#2563EB">
+  
+  <!-- Icons -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>seguruni</title>
+  
+  <title>CampusGuard</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Service Worker Registration -->
+<!-- Service Worker Registration MEJORADO -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      // Registrar nuestro SW personalizado
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(registration) {
+          console.log('✅ Service Worker registrado exitosamente:', registration.scope);
+          
+          // Verificar actualizaciones
+          registration.addEventListener('updatefound', () => {
+            console.log('🔄 Actualización de Service Worker encontrada');
+            const newWorker = registration.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'activated') {
+                console.log('✅ Nuevo Service Worker activado');
+              }
+            });
+          });
+        })
+        .catch(function(error) {
+          console.error('❌ Error al registrar Service Worker:', error);
+        });
+      
+      // Detectar cambios de conexión
+      window.addEventListener('online', () => {
+        console.log('🌐 Conexión restaurada');
+        document.body.classList.remove('offline');
+      });
+      
+      window.addEventListener('offline', () => {
+        console.log('📵 Sin conexión - Modo offline activado');
+        document.body.classList.add('offline');
+      });
+    });
+  } else {
+    console.warn('⚠️ Service Workers no soportados en este navegador');
+  }
+</script>
 </head>
 <body>
+  <!-- Loading Screen -->
+  <div id="loading" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #2563EB 0%, #9333EA 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 9999;
+  ">
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+    </svg>
+    <p style="color: white; margin-top: 20px; font-family: sans-serif;">Cargando CampusGuard...</p>
+  </div>
+
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        document.getElementById('loading').style.display = 'none';
+      }, 1000);
+    });
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

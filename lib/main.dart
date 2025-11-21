@@ -2,12 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/home_screen.dart';
+import 'services/offline_service.dart';  // 🆕
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Necesario antes de inicializar Firebase
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // 🆕 Inicializar servicio offline
+  await OfflineService.init();
+  
+  // 🆕 Iniciar sincronización automática
+  OfflineService.startAutoSync();
+  
   runApp(const CampusGuardApp());
 }
 

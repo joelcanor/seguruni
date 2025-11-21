@@ -31,20 +31,43 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Firebase
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
+  firebase_storage: ^12.4.10  # ⚠️ Corregí el formato (faltaba ^)
+  firebase_messaging: ^15.1.3  # 🆕 NUEVO - Para push notifications web
+  
+  # Maps (WEB SUPPORT)
   google_maps_flutter: ^2.9.0
+  google_maps_flutter_web: ^0.5.10  # 🆕 CRÍTICO para que maps funcione en web
+  google_maps_flutter_platform_interface: ^2.9.0  # 🆕 Necesario
+  flutter_polyline_points: ^2.0.0
+  
+  # Geolocalización
   geolocator: ^13.0.1
+  geocoding: ^4.0.0
+  geolocator_web: ^4.1.1  # 🆕 Para web
+  
+  # Permisos e Imágenes
+  permission_handler: ^11.0.1
+  image_picker: ^1.0.4
+  
+  # Conectividad y Offline
+  connectivity_plus: ^6.1.0  # 🆕 Detectar conexión
+  hive_flutter: ^1.1.0  # 🆕 Base de datos local para offline
+  
+  # Notificaciones
+  flutter_local_notifications: ^18.0.1  # 🆕 Notificaciones locales
+  
+  # UI y Utilidades
+  cupertino_icons: ^1.0.8
   url_launcher: ^6.3.1
   audioplayers: ^5.2.0
   intl: ^0.19.0
-  permission_handler: ^11.0.1
-  image_picker: ^1.0.4
-  firebase_storage: 12.4.10
-  flutter_polyline_points: ^2.0.0
-  cupertino_icons: ^1.0.8
-  geocoding: ^4.0.0
+  
+  # Estado (opcional pero recomendado)
+  provider: ^6.1.2  # 🆕 Para manejar estado global
   
 
 

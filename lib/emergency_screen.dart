@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'services/offline_service.dart';  // 🆕 NUEVO
 
 class EmergencyScreen extends StatefulWidget {
   const EmergencyScreen({super.key});
@@ -28,24 +29,28 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     });
 
     try {
-      // 1. Reproducir alarma a todo volumen
-      await _playAlarm();
-
-      // 2. Hacer llamada al 911
-      await _call911();
-
-      // 3. Enviar reporte a Firebase
+      // ✅ PASO 1: PRIMERO enviar el reporte
       await _sendEmergencyReport();
+      
+      // ✅ PASO 2: Reproducir alarma
+      _playAlarm();
+      
+      // ✅ PASO 3: Pequeña espera
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('¡Alerta de emergencia enviada! Llamando al 911...'),
             backgroundColor: Color(0xFF059669),
-            duration: Duration(seconds: 3),
+            duration: Duration(seconds: 2),
           ),
         );
       }
+
+      // ✅ PASO 4: Llamada
+      await _call911();
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -56,23 +61,20 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
         );
       }
     } finally {
-      setState(() {
-        _isEmergencyActive = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isEmergencyActive = false;
+        });
+      }
     }
   }
 
   Future<void> _playAlarm() async {
     try {
-      // Establecer volumen al máximo
       await _audioPlayer.setVolume(1.0);
-      
-      // Reproducir sonido de alarma en loop
-      // Puedes usar un asset local o una URL de sonido de alarma
       await _audioPlayer.play(AssetSource('sounds/alarm.mp3'));
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
       
-      // Detener la alarma después de 30 segundos
       Future.delayed(const Duration(seconds: 30), () {
         _audioPlayer.stop();
       });
@@ -85,7 +87,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     try {
       final Uri phoneUri = Uri(scheme: 'tel', path: '911');
       if (await canLaunchUrl(phoneUri)) {
-        await launchUrl(phoneUri);
+        await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
       } else {
         throw Exception('No se puede realizar la llamada');
       }
@@ -95,46 +97,138 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     }
   }
 
+  // 🆕 VERSIÓN CON OFFLINE SIMPLIFICADA
   Future<void> _sendEmergencyReport() async {
     try {
-      // Obtener ubicación actual
+      debugPrint('🚨 INICIANDO ENVÍO DE REPORTE DE EMERGENCIA');
+      
+      // ========================================
+      // 📍 OBTENER UBICACIÓN
+      // ========================================
       Position? position;
       try {
-        position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+
+        if (permission != LocationPermission.denied && 
+            permission != LocationPermission.deniedForever) {
+          position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 5),
+            ),
+          );
+          debugPrint('📍 Ubicación obtenida: ${position.latitude}, ${position.longitude}');
+        }
       } catch (e) {
-        debugPrint('No se pudo obtener la ubicación: $e');
+        debugPrint('⚠️ No se pudo obtener la ubicación: $e');
       }
 
-      // Obtener usuario actual
+      // ========================================
+      // 👤 OBTENER USUARIO
+      // ========================================
       final user = FirebaseAuth.instance.currentUser;
+      debugPrint('👤 Usuario: ${user?.email ?? "Sin usuario"}');
       
-      // Crear documento de reporte en Firebase
-      final reportData = {
-        'tipoIncidente': 'Llamada de emergencia',
-        'descripcion': 'Alerta de emergencia activada mediante el botón SOS. Se ha iniciado una llamada al 911 y se ha activado la alarma del dispositivo.',
-        'timestamp': FieldValue.serverTimestamp(),
-        'ubicacion': position != null
-            ? {
-                'latitud': position.latitude,
-                'longitud': position.longitude,
-              }
-            : null,
-        'userId': user?.uid,
-        'userEmail': user?.email,
-        'esEmergencia': true,
-        'estado': 'activa',
-      };
+      // ========================================
+      // 💾 GUARDAR PRIMERO EN HIVE (OFFLINE)
+      // ========================================
+      debugPrint('💾 Guardando primero en almacenamiento local...');
+      await OfflineService.saveEmergencyOffline(
+        latitude: position?.latitude ?? 0.0,
+        longitude: position?.longitude ?? 0.0,
+        userId: user?.uid ?? 'usuario_anonimo',
+        userName: user?.email ?? 'Usuario sin email',
+      );
+      debugPrint('✅ GUARDADO LOCAL EXITOSO (BACKUP GARANTIZADO)');
 
-      // Guardar en Firestore (asume que tienes una colección 'reportes')
-      await FirebaseFirestore.instance
-          .collection('reportes')
-          .add(reportData);
+      // ========================================
+      // 🌐 VERIFICAR CONEXIÓN E INTENTAR ENVIAR
+      // ========================================
+      final hasConnection = await OfflineService.hasConnection();
+      debugPrint('🌐 Estado de conexión: ${hasConnection ? "ONLINE" : "OFFLINE"}');
 
-      debugPrint('Reporte de emergencia enviado exitosamente');
+      if (hasConnection) {
+        // ========================================
+        // 📤 ENVIAR A FIREBASE
+        // ========================================
+        debugPrint('📤 Enviando reporte a Firestore...');
+        
+        final reportData = {
+          'tipo': 'Alerta de Seguridad',
+          'tipoIncidente': '🚨 EMERGENCIA 911',
+          'descripcion': 
+              '🚨 ALERTA DE EMERGENCIA ACTIVADA 🚨\n\n'
+              'El usuario ha presionado el botón de pánico SOS.\n\n'
+              'Acciones tomadas:\n'
+              '• Se ha iniciado llamada al 911\n'
+              '• Alarma del dispositivo activada\n'
+              '• Reporte enviado a las autoridades\n\n'
+              'REQUIERE ATENCIÓN INMEDIATA',
+          
+          'fechaHora': FieldValue.serverTimestamp(),
+          'fechaHoraLocal': DateTime.now().toIso8601String(),
+          
+          'ubicacion': position != null
+              ? 'Lat: ${position.latitude.toStringAsFixed(4)}, Lng: ${position.longitude.toStringAsFixed(4)}'
+              : 'Ubicación no disponible',
+          
+          'coordenadas': position != null
+              ? {
+                  'latitud': position.latitude,
+                  'longitud': position.longitude,
+                  'precision': position.accuracy,
+                }
+              : null,
+          
+          'userId': user?.uid ?? 'usuario_anonimo',
+          'userEmail': user?.email ?? 'Sin email',
+          'esAnonimo': false,
+          'esEmergencia': true,
+          'tipoEmergencia': 'BOTON_PANICO_SOS',
+          'estado': 'ACTIVA',
+          'prioridad': 'CRITICA',
+          'llamada911': true,
+          'alarmaActivada': true,
+        };
+        
+        await FirebaseFirestore.instance
+            .collection('reportes')
+            .add(reportData);
+
+        debugPrint('✅ REPORTE ENVIADO A FIREBASE');
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Emergencia enviada exitosamente'),
+              backgroundColor: Color(0xFF10B981),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        // ========================================
+        // 📡 SIN INTERNET
+        // ========================================
+        debugPrint('📡 SIN CONEXIÓN - Emergencia guardada localmente');
+        debugPrint('🔄 Se sincronizará automáticamente al restaurar conexión');
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('📡 Sin internet - Emergencia guardada localmente\nSe enviará automáticamente al conectar'),
+              backgroundColor: Color(0xFFF59E0B),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+
     } catch (e) {
-      debugPrint('Error al enviar reporte: $e');
+      debugPrint('❌ ERROR AL ENVIAR REPORTE: $e');
       rethrow;
     }
   }
@@ -201,9 +295,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             GestureDetector(
               onLongPress: _handleEmergency,
               onLongPressEnd: (_) {
-                setState(() {
-                  _isEmergencyActive = false;
-                });
+                if (mounted) {
+                  setState(() {
+                    _isEmergencyActive = false;
+                  });
+                }
               },
               child: Container(
                 width: 220,
@@ -214,7 +310,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                   boxShadow: _isEmergencyActive
                       ? [
                           BoxShadow(
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white.withValues(alpha: 0.5),
                             blurRadius: 30,
                             spreadRadius: 10,
                           ),
